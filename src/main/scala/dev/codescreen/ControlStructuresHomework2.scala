@@ -1,5 +1,7 @@
 package dev.codescreen;
 
+import dev.codescreen.ControlStructuresHomework2.Command.{Average, Divide, Max, Min, Sum}
+
 import scala.io.Source
 
 object ControlStructuresHomework2 {
@@ -41,27 +43,51 @@ object ControlStructuresHomework2 {
 
   // Adjust `Result` and `ChangeMe` as you wish - you can turn Result into a `case class` and remove the `ChangeMe` if
   // you think it is the best model for your solution, or just have other `case class`-es implement `Result`
-  sealed trait Result
-  final case class ChangeMe(value: String) extends Result
+  final case class Result(value: String)
+
+  def makeString(list: List[Double]): String = {
+    list.foldLeft("")((output, num) => output + num + " ")
+  }
 
   def parseCommand(x: String): Either[ErrorMessage, Command] = {
-    ??? // implement this method
+    // implement this method
     // Implementation hints:
     // You can use String#split, convert to List using .toList, then pattern match on:
     //   case x :: xs => ???
 
     // Consider how to handle extra whitespace gracefully (without errors).
+    val rawCommand = x.split("\\s+").toList
+    val command: Either[ErrorMessage, Command] = rawCommand match {
+      case x :: xs if(x == "divide") => Right(Divide(xs.head.toDouble, xs.tail.head.toDouble))
+      case x :: xs if(x == "sum") => Right(Sum(xs.map(_.toDouble)))
+      case x :: xs if(x == "average") => Right(Average(xs.map(_.toDouble)))
+      case x :: xs if(x == "min") => Right(Min(xs.map(_.toDouble)))
+      case x :: xs if(x == "max") => Right(Max(xs.map(_.toDouble)))
+      case _ => Left(ErrorMessage("Error: Not Valid Input"))
+    }
+    command
   }
 
   // should return an error (using `Left` channel) in case of division by zero and other
   // invalid operations
   def calculate(x: Command): Either[ErrorMessage, Result] = {
-    ??? // implement this method
+    // implement this method
+    val result: Either[ErrorMessage, Result] = x match {
+      case x: Divide => {
+       val a = x.dividend
+       val b = x.divisor
+        if(b == 0) Left(ErrorMessage("Error: Division by zero"))
+        else Right(Result(s"${a} divided by ${b} is ${a/b}"))
+      }
+      case x: Sum => Right(Result(s"the sum of ${makeString(x.numbers)}is ${x.numbers.sum}"))
+      case x: Average => Right(Result(s"the average of ${makeString(x.numbers)}is ${x.numbers.sum/x.numbers.length}"))
+      case x: Min => Right(Result(s"the minimum of ${makeString(x.numbers)}is ${x.numbers.min}"))
+      case x: Max => Right(Result(s"the maximum of ${makeString(x.numbers)}is ${x.numbers.max}"))
+    }
+    result
   }
 
-  def renderResult(x: Result): String = {
-    ??? // implement this method
-  }
+  def renderResult(x: Result): String = x.value
 
   def process(x: String): String = {
     import cats.implicits._
@@ -69,7 +95,20 @@ object ControlStructuresHomework2 {
     // (map over the Left channel) and `merge` (convert `Either[A, A]` into `A`),
     // but you can also avoid using them using pattern matching.
 
-    ??? // implement using a for-comprehension
+    val command = parseCommand(x) // implement using a for-comprehension
+
+    val result: String = command match {
+      case Right(x) => {
+        val calculation = calculate(x)
+        calculation match {
+          case Right(res) => renderResult(res)
+          case Left(errMsg) => errMsg.value
+        }
+      }
+      case Left(x) => x.value
+    }
+    println(result )
+    result
   }
 
   // This `main` method reads lines from stdin, passes each to `process` and outputs the return value to stdout
